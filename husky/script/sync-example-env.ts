@@ -34,7 +34,6 @@ async function main() {
 
   fs.appendFileSync(EXAMPLE_ENV_PATH, newKeysContent, 'utf-8');
   console.log('✅ .env.example atualizado com sucesso!');
-
 }
 
 main();

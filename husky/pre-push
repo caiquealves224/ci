@@ -45,7 +45,7 @@ echo "Mudança detectada em .env.example"
 echo "env_example_hash $CURRENT_ENV_EXAMPLE_HASH" > "$HASH_FILE"
 
 ### Execute the TypeScript validation script
-SCRIPT="$REPO_ROOT/.husky/scripts/check-env.ts"
+SCRIPT="$REPO_ROOT/.husky/scripts/notify-env.ts"
 
 if [ -f "$SCRIPT" ]; then
   npx ts-node "$SCRIPT"
