@@ -6,12 +6,9 @@ const LOCAL_ENV_PATH = path.resolve(process.cwd(), '.env');
 const EXAMPLE_ENV_PATH = path.resolve(process.cwd(), '.env.example');
 
 function parseEnvFile(filePath: string): Record<string, string> {
-  if (!fs.existsSync(filePath)) {
-    console.warn(`⚠️  Arquivo não encontrado: ${filePath}`);
-    return {};
-  }
-  const content = fs.readFileSync(filePath, 'utf-8');
-  return dotenv.parse(content);
+  return fs.existsSync(filePath) 
+  ? dotenv.parse(fs.readFileSync(filePath, 'utf-8')) 
+  : {};
 }
 
 async function main() {
