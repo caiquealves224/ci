@@ -1,0 +1,76 @@
+#!/bin/sh
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+
+ENV_PATH="$REPO_ROOT/.env"
+ENV_EXAMPLE_PATH="$REPO_ROOT/.env.example"
+
+# A single file to store hashes for both .env and .env.example
+HASH_FILE="$REPO_ROOT/.husky/_/.env_hashes"
+
+### Function to get SHA256 hash of a file
+get_hash() {
+  if [ -f "$1" ]; then
+    sha256sum "$1" | awk '{ print $1 }'
+  else
+    echo "" # Return empty if file doesn't exist
+  fi
+}
+
+# Get current hashes
+CURRENT_ENV_HASH=$(get_hash "$ENV_PATH")
+CURRENT_ENV_EXAMPLE_HASH=$(get_hash "$ENV_EXAMPLE_PATH")
+
+# Read previous hashes
+if [ -f "$HASH_FILE" ]; then
+  PREV_ENV_HASH=$(grep "env_hash" "$HASH_FILE" | awk '{print $2}' 2>/dev/null)
+  PREV_ENV_EXAMPLE_HASH=$(grep "env_example_hash" "$HASH_FILE" | awk '{print $2}' 2>/dev/null)
+else
+  PREV_ENV_HASH=""
+  PREV_ENV_EXAMPLE_HASH=""
+fi
+
+echo "🚨 Verificando variáveis de ambiente antes do push..."
+
+# Check for changes in .env or .env.example
+CHANGES_DETECTED=0
+
+if [ "$CURRENT_ENV_HASH" != "$PREV_ENV_HASH" ]; then
+  echo "Mudança detectada em .env"
+  CHANGES_DETECTED=1
+fi
+
+if [ "$CURRENT_ENV_EXAMPLE_HASH" != "$PREV_ENV_EXAMPLE_HASH" ]; then
+  echo "mudança detectada em .env.example"
+  CHANGES_DETECTED=1
+fi
+
+if [ "$CHANGES_DETECTED" -eq 0 ]; then
+  echo "✅ Nenhuma mudança nos arquivos .env ou .env.example detectada."
+  exit 0
+  # If no changes to the files themselves, we can exit early unless the script should always run.
+  # For a pre-push hook, if no .env/.env.example changes, we might still want to run the TS script.
+  # So, we don't exit here.
+else
+  # Overwrite the hash file with the new hashes for both files
+  echo "env_hash $CURRENT_ENV_HASH" > "$HASH_FILE"
+  echo "env_example_hash $CURRENT_ENV_EXAMPLE_HASH" >> "$HASH_FILE"
+fi
+
+### Execute the TypeScript validation script
+
+SCRIPT="$REPO_ROOT/.husky/scripts/check-env.ts"
+
+if [ -f "$SCRIPT" ]; then
+  npx ts-node "$SCRIPT" --sync
+  STATUS=$?
+  if [ $STATUS -ne 0 ]; then
+    echo "❌ Push bloqueado por problemas nas variáveis de ambiente detectados pelo script de validação."
+    exit 1
+  fi
+else
+  echo "⚠️  Script de validação ($SCRIPT) não encontrado. Push permitido."
+fi
+
+# If we reached here, no issues were found, so allow the push.
+exit 0
