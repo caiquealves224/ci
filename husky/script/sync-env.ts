@@ -18,20 +18,16 @@ async function main() {
   const localKeys = Object.keys(localEnv);
   const exampleKeys = Object.keys(exampleEnv);
 
-  const missingInExample = localKeys.filter(key => !exampleKeys.includes(key));
   const missingInLocal = exampleKeys.filter(key => !localKeys.includes(key));
 
-  if (missingInLocal.length > 0) {
-    console.warn('⚠️  Variáveis no .env.example que estão faltando no seu .env:\n' + missingInLocal.join('\n'));
-  }
+  if (missingInLocal.length === 0) return process.exit(0);
 
-  if (missingInExample.length === 0) return process.exit(0);
+  console.warn('⚠️  Variáveis no .env.example que estão faltando no seu .env:\n' + missingInLocal.join('\n'));
   
-  const newKeysContent = '\n' + missingInExample.map(k => `${k}=`).join('\n') + '\n';
+  const newKeysContent = '\n' + missingInLocal.map(k => `${k}=`).join('\n') + '\n';
 
-  fs.appendFileSync(EXAMPLE_ENV_PATH, newKeysContent, 'utf-8');
+  fs.appendFileSync(LOCAL_ENV_PATH, newKeysContent, 'utf-8');
   console.log('✅ .env.example atualizado com sucesso!');
-
 }
 
 main();
