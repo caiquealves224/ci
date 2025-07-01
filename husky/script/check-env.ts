@@ -5,7 +5,7 @@ import { execSync } from 'child_process';
 
 const LOCAL_ENV_PATH = path.resolve(process.cwd(), '.env');
 const EXAMPLE_ENV_PATH = path.resolve(process.cwd(), '.env.example');
-const SLACK_WEBHOOK_URL = 'SUBSTITUA_AQUI';
+const SLACK_WEBHOOK_URL = 'URL_DO_WEBHOOK';
 
 function parseEnvFile(filePath: string): Record<string, string> {
   if (!fs.existsSync(filePath)) {
