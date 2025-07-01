@@ -13,7 +13,6 @@ function parseEnvFile(filePath: string): Record<string, string> {
 
 async function main() {
   const localEnv = parseEnvFile(LOCAL_ENV_PATH);
-
   const exampleEnv = parseEnvFile(EXAMPLE_ENV_PATH);
 
   const localKeys = Object.keys(localEnv);
