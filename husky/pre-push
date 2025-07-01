@@ -1,14 +1,12 @@
 #!/bin/sh
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
-
-ENV_PATH="$REPO_ROOT/.env"
 ENV_EXAMPLE_PATH="$REPO_ROOT/.env.example"
 
-# A single file to store hashes for both .env and .env.example
+# A single file to store hashes for .env.example
 HASH_FILE="$REPO_ROOT/.husky/_/.env_hashes"
 
-### Function to get SHA256 hash of a file
+### Function to get SHA256 hash of a file in the working directory
 get_hash() {
   if [ -f "$1" ]; then
     sha256sum "$1" | awk '{ print $1 }'
@@ -17,52 +15,40 @@ get_hash() {
   fi
 }
 
-# Get current hashes
-CURRENT_ENV_HASH=$(get_hash "$ENV_PATH")
-CURRENT_ENV_EXAMPLE_HASH=$(get_hash "$ENV_EXAMPLE_PATH")
+### Function to get SHA256 hash of a file from HEAD commit
+get_head_hash() {
+  local FILE_PATH_RELATIVE=$(realpath --relative-to="$REPO_ROOT" "$1")
+  if git ls-tree --name-only HEAD | grep -q "^$FILE_PATH_RELATIVE$"; then
+    git show HEAD:"$FILE_PATH_RELATIVE" | sha256sum | awk '{ print $1 }'
+  else
+    echo "" # File does not exist in HEAD
+  fi
+}
+
+# Get current hash for .env.example from HEAD commit
+CURRENT_ENV_EXAMPLE_HASH=$(get_head_hash "$ENV_EXAMPLE_PATH")
 
 # Read previous hashes
 if [ -f "$HASH_FILE" ]; then
-  PREV_ENV_HASH=$(grep "env_hash" "$HASH_FILE" | awk '{print $2}' 2>/dev/null)
   PREV_ENV_EXAMPLE_HASH=$(grep "env_example_hash" "$HASH_FILE" | awk '{print $2}' 2>/dev/null)
 else
-  PREV_ENV_HASH=""
   PREV_ENV_EXAMPLE_HASH=""
 fi
 
-echo "🚨 Verificando variáveis de ambiente antes do push..."
-
-# Check for changes in .env or .env.example
-CHANGES_DETECTED=0
-
-if [ "$CURRENT_ENV_HASH" != "$PREV_ENV_HASH" ]; then
-  echo "Mudança detectada em .env"
-  CHANGES_DETECTED=1
-fi
-
-if [ "$CURRENT_ENV_EXAMPLE_HASH" != "$PREV_ENV_EXAMPLE_HASH" ]; then
-  echo "mudança detectada em .env.example"
-  CHANGES_DETECTED=1
-fi
-
-if [ "$CHANGES_DETECTED" -eq 0 ]; then
-  echo "✅ Nenhuma mudança nos arquivos .env ou .env.example detectada."
+if [ "$CURRENT_ENV_EXAMPLE_HASH" = "$PREV_ENV_EXAMPLE_HASH" ]; then
   exit 0
-  # If no changes to the files themselves, we can exit early unless the script should always run.
-  # For a pre-push hook, if no .env/.env.example changes, we might still want to run the TS script.
-  # So, we don't exit here.
-else
-  # Overwrite the hash file with the new hashes for both files
-  echo "env_hash $CURRENT_ENV_HASH" > "$HASH_FILE"
-  echo "env_example_hash $CURRENT_ENV_EXAMPLE_HASH" >> "$HASH_FILE"
 fi
+
+echo "Mudança detectada em .env.example"
+
+# Overwrite the hash file with the new hashes for both files
+echo "env_example_hash $CURRENT_ENV_EXAMPLE_HASH" > "$HASH_FILE"
 
 ### Execute the TypeScript validation script
-
 SCRIPT="$REPO_ROOT/.husky/scripts/check-env.ts"
 
 if [ -f "$SCRIPT" ]; then
-  npx ts-node "$SCRIPT" --sync
+  npx ts-node "$SCRIPT"
   STATUS=$?
   if [ $STATUS -ne 0 ]; then
     echo "❌ Push bloqueado por problemas nas variáveis de ambiente detectados pelo script de validação."
