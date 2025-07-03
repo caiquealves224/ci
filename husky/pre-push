@@ -6,15 +6,6 @@ ENV_EXAMPLE_PATH="$REPO_ROOT/.env.example"
 # A single file to store hashes for .env.example
 HASH_FILE="$REPO_ROOT/.husky/_/.env_hashes"
 
-### Function to get SHA256 hash of a file in the working directory
-get_hash() {
-  if [ -f "$1" ]; then
-    sha256sum "$1" | awk '{ print $1 }'
-  else
-    echo "" # Return empty if file doesn't exist
-  fi
-}
-
 ### Function to get SHA256 hash of a file from HEAD commit
 get_head_hash() {
   local FILE_PATH_RELATIVE=$(realpath --relative-to="$REPO_ROOT" "$1")
